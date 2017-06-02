@@ -1,30 +1,31 @@
 package org.vaadin.support.pontus.daterangefield.client;
 
 import java.util.Date;
+import java.util.Map;
 
+import com.google.gwt.core.shared.GWT;
 import com.google.gwt.event.dom.client.DomEvent;
-import com.google.gwt.user.client.ui.FlexTable;
-import com.google.gwt.user.client.ui.Widget;
-import com.google.gwt.user.datepicker.client.CalendarUtil;
-import com.vaadin.client.VConsole;
 import com.vaadin.client.ui.VAbstractCalendarPanel.FocusOutListener;
 import com.vaadin.client.ui.VAbstractCalendarPanel.SubmitListener;
-import com.vaadin.client.ui.VDateCalendarPanel;
-import com.vaadin.client.ui.VDateFieldCalendar;
+import com.vaadin.client.ui.VAbstractDateFieldCalendar;
+import com.vaadin.client.ui.VPopupCalendar;
 import com.vaadin.shared.ui.datefield.DateResolution;
 
-public class VDateRangeFieldCalendar extends VDateFieldCalendar {
+public class VDateRangeFieldCalendar extends
+        VAbstractDateFieldCalendar<VDateRangeCalendarPanel, DateResolution> {
+    public interface DateRangeUpdateListener {
+        public void dateUpdated(Date startDate, Date endDate);
+    }
 
-    Date startDate = null;
-    Date endDate = null;
+    private DateRangeUpdateListener updateListener;
 
     public VDateRangeFieldCalendar() {
-        setCurrentResolution(DateResolution.DAY);
+        super(GWT.create(VDateRangeCalendarPanel.class), DateResolution.DAY);
+
         calendarPanel.setFocusOutListener(new FocusOutListener() {
 
             @Override
             public boolean onFocusOut(DomEvent<?> event) {
-                startDate = null;
                 updateValueFromPanel();
                 return false;
             }
@@ -36,9 +37,6 @@ public class VDateRangeFieldCalendar extends VDateFieldCalendar {
             @Override
             public void onSubmit() {
                 updateValueFromPanel();
-                if (startDate != null && endDate != null) {
-                    updateVisualisation();
-                }
 
             }
 
@@ -51,51 +49,100 @@ public class VDateRangeFieldCalendar extends VDateFieldCalendar {
     }
 
     public void setStartDate(Date date) {
-        startDate = date;
-        CalendarUtil.resetTime(startDate);
+        calendarPanel.setStartDate(date);
     }
 
     public void setEndDate(Date date) {
-        endDate = date;
-        CalendarUtil.resetTime(endDate);
+        calendarPanel.setEndDate(date);
     }
 
     public void updateVisualisation() {
-        VConsole.log("Updating visualisations");
-        VDateCalendarPanel panel = calendarPanel;
-        FlexTable days = getDays(panel);
-        int rowCount = days.getRowCount();
-        for (int i = 0; i < rowCount; i++) {
-            int cellCount = days.getCellCount(i);
-            for (int j = 0; j < cellCount; j++) {
-                Widget widget = days.getWidget(i, j);
-                VConsole.log("Got widget for cell" + i + " " + j);
-                if (widget != null) {
-                    Date curday = getDateFromDayWidget(widget);
-                    VConsole.log("Checking day" + curday);
-                    if (isInInterval(curday)) {
-                        widget.addStyleDependentName("selected");
-                        VConsole.log("Updating day" + curday);
-                    }
+        calendarPanel.updateVisualisation();
+    }
 
-                }
+    @Override
+    @SuppressWarnings("deprecation")
+    public void updateValueFromPanel() {
+        // If field is invisible at the beginning, client can still be null when
+        // this function is called.
+
+        Date date2 = calendarPanel.getDate();
+        Date currentDate = getCurrentDate();
+        Date startDate = calendarPanel.getStartDate();
+        Date endDate = calendarPanel.getEndDate();
+
+        // Date range logic
+
+        if (startDate == null) {
+            calendarPanel.setStartDate((Date) date2.clone());
+        } else {
+            Date value = (Date) date2.clone();
+            // Clicking on the edge of the range collapses the range to a single
+            // day range.
+            if (value != null && value.equals(startDate)) {
+                calendarPanel.setStartDate(value);
+                calendarPanel.setEndDate((Date) value.clone());
+            } else if (value != null && value.equals(endDate)) {
+                calendarPanel.setStartDate(endDate);
+                calendarPanel.setEndDate((Date) value.clone());
+            } else
+            // Depending which side of the interval is clicked extend/contract
+            // range
+            if (startDate.before(value)) {
+                calendarPanel.setEndDate(value);
+            } else {
+                calendarPanel.setStartDate(value);
             }
         }
-        VConsole.log("Updated visualisations");
+
+        setCurrentDate((Date) date2.clone());
+        calendarPanel.updateVisualisation();
+
+        if (currentDate == null
+                || startDate == null
+                || endDate == null
+                || !(startDate.getTime() == endDate.getTime()
+                        && startDate.getTime() == currentDate.getTime() && date2
+                        .getTime() == currentDate.getTime())) {
+
+            if (updateListener != null) {
+                updateListener.dateUpdated(calendarPanel.getStartDate(),
+                        calendarPanel.getEndDate());
+            }
+        }
     }
 
-    private boolean isInInterval(Date date) {
-        return date != null && startDate != null && endDate != null
-                && !date.before(startDate) && !date.after(endDate);
+    @Override
+    public void setCurrentResolution(DateResolution resolution) {
+        super.setCurrentResolution(resolution == null ? DateResolution.YEAR
+                : resolution);
     }
 
-    private native static FlexTable getDays(VDateCalendarPanel panel)
-    /*-{
-        return panel.@com.vaadin.client.ui.VAbstractCalendarPanel::days;
-    }-*/;
+    @Override
+    public String resolutionAsString() {
+        return getResolutionVariable(getCurrentResolution());
+    }
 
-    private native static Date getDateFromDayWidget(Widget widget)
-    /*-{
-        return widget.@com.vaadin.client.ui.VAbstractCalendarPanel$Day::getDate()();
-    }-*/;
+    @Override
+    public boolean isYear(DateResolution resolution) {
+        return DateResolution.YEAR.equals(resolution);
+    }
+
+    @Override
+    protected DateResolution[] doGetResolutions() {
+        return DateResolution.values();
+    }
+
+    @Override
+    protected Date getDate(Map<DateResolution, Integer> dateVaules) {
+        return VPopupCalendar.makeDate(dateVaules);
+    }
+
+    public DateRangeUpdateListener getUpdateListener() {
+        return updateListener;
+    }
+
+    public void setUpdateListener(DateRangeUpdateListener updateListener) {
+        this.updateListener = updateListener;
+    }
 }

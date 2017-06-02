@@ -39,23 +39,23 @@ public class DemoUI extends UI {
         layout.setSizeFull();
         layout.setMargin(false);
         layout.setSpacing(false);
-        component.addStartDateChangeListener(e -> {
-            System.out.println("Start date changed from " + e.getOldValue()
-                    + " to " + e.getValue());
-        });
-
-        component.addEndDateChangeListener(e -> {
-            System.out.println("End date changed from " + e.getOldValue()
-                    + " to " + e.getValue());
-        });
+        /*
+         * component.addStartDateChangeListener(e -> {
+         * System.out.println("Start date changed from " + e.getOldValue() +
+         * " to " + e.getValue()); });
+         *
+         * component.addEndDateChangeListener(e -> {
+         * System.out.println("End date changed from " + e.getOldValue() +
+         * " to " + e.getValue()); });
+         */
 
         component.addValueChangeListener(e -> {
             System.out.println("Value changed from " + e.getOldValue() + " to "
                     + e.getValue());
         });
 
-        component.setDateRange(LocalDate.now().minusDays(5), LocalDate.now()
-                .plusDays(5));
+        component.setValue(new DateRange(LocalDate.now().minusDays(5),
+                LocalDate.now().plusDays(5)));
 
         Button b = new Button("Change range");
         b.addClickListener(click -> {
