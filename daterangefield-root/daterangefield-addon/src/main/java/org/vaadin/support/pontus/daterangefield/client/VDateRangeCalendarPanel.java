@@ -34,6 +34,8 @@ public class VDateRangeCalendarPanel extends VDateCalendarPanel {
                     Date curday = getDateFromDayWidget(widget);
                     if (isInInterval(curday)) {
                         widget.addStyleDependentName("selected");
+                    } else {
+                        widget.removeStyleDependentName("selected");
                     }
 
                 }

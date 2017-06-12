@@ -13,6 +13,8 @@ import com.vaadin.annotations.VaadinServletConfiguration;
 import com.vaadin.server.VaadinRequest;
 import com.vaadin.server.VaadinServlet;
 import com.vaadin.ui.Button;
+import com.vaadin.ui.DateField;
+import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.UI;
 import com.vaadin.ui.VerticalLayout;
 
@@ -39,15 +41,13 @@ public class DemoUI extends UI {
         layout.setSizeFull();
         layout.setMargin(false);
         layout.setSpacing(false);
-        /*
-         * component.addStartDateChangeListener(e -> {
-         * System.out.println("Start date changed from " + e.getOldValue() +
-         * " to " + e.getValue()); });
-         *
-         * component.addEndDateChangeListener(e -> {
-         * System.out.println("End date changed from " + e.getOldValue() +
-         * " to " + e.getValue()); });
-         */
+
+        DateField startLimit = new DateField("Start limit");
+        DateField endLimit = new DateField("End limit");
+
+        HorizontalLayout limitLayout = new HorizontalLayout();
+        limitLayout.addComponents(startLimit, endLimit);
+        layout.addComponent(limitLayout);
 
         component.addValueChangeListener(e -> {
             System.out.println("Value changed from " + e.getOldValue() + " to "
@@ -57,12 +57,20 @@ public class DemoUI extends UI {
         component.setValue(new DateRange(LocalDate.now().minusDays(5),
                 LocalDate.now().plusDays(5)));
 
+        startLimit.addValueChangeListener(v -> {
+            component.setRangeStartLimit(v.getValue());
+        });
+        endLimit.addValueChangeListener(v -> {
+            component.setRangeEndLimit(v.getValue());
+        });
+
         Button b = new Button("Change range");
         b.addClickListener(click -> {
             component.setValue(new DateRange(LocalDate.now().minusDays(3),
                     LocalDate.now().plusDays(3)));
         });
         layout.addComponents(component, b);
+        layout.setExpandRatio(component, 1f);
         setContent(layout);
     }
 }

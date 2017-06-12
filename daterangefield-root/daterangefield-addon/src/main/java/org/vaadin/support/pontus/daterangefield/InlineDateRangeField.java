@@ -9,6 +9,11 @@ import java.util.Locale;
 import org.vaadin.support.pontus.daterangefield.client.InlineDateRangeFieldServerRpc;
 import org.vaadin.support.pontus.daterangefield.client.InlineDateRangeFieldState;
 
+import com.vaadin.data.ValidationResult;
+import com.vaadin.data.ValueContext;
+import com.vaadin.data.validator.DateRangeValidator;
+import com.vaadin.data.validator.RangeValidator;
+import com.vaadin.server.UserError;
 import com.vaadin.ui.AbstractField;
 
 /**
@@ -21,7 +26,10 @@ import com.vaadin.ui.AbstractField;
  * @author pontusbostrom
  *
  */
+@SuppressWarnings("serial")
 public class InlineDateRangeField extends AbstractField<DateRange> {
+
+    private String dateOutOfRangeMessage;
 
     public InlineDateRangeField() {
         registerRpc(new InlineDateRangeFieldServerRpc() {
@@ -32,6 +40,8 @@ public class InlineDateRangeField extends AbstractField<DateRange> {
                         convertFromDate(endDate)), true);
             }
         });
+
+        dateOutOfRangeMessage = "Date range not within limits";
 
     }
 
@@ -54,12 +64,30 @@ public class InlineDateRangeField extends AbstractField<DateRange> {
             getState().startDate = convertToDate(value.getStart());
             getState().endDate = convertToDate(value.getEnd());
         }
+
+        RangeValidator<LocalDate> validator = getRangeValidator();
+        ValidationResult result = validator.apply(value.getStart(),
+                new ValueContext(this));
+        if (result.isError()) {
+            setComponentError(new UserError(getDateOutOfRangeMessage()));
+        } else {
+            result = validator.apply(value.getEnd(), new ValueContext(this));
+            if (result.isError()) {
+                setComponentError(new UserError(getDateOutOfRangeMessage()));
+            }
+        }
+    }
+
+    protected RangeValidator<LocalDate> getRangeValidator() {
+        return new DateRangeValidator(getDateOutOfRangeMessage(),
+                getRangeStartLimit(), getRangeEndLimit());
     }
 
     @Override
     public DateRange getValue() {
-        DateRange range = new DateRange(convertFromDate(getState().startDate),
-                convertFromDate(getState().endDate));
+        DateRange range = new DateRange(
+                convertFromDate(getState(false).startDate),
+                convertFromDate(getState(false).endDate));
         return range;
     }
 
@@ -94,15 +122,15 @@ public class InlineDateRangeField extends AbstractField<DateRange> {
     }
 
     /**
-     * Sets the start range for this component. If the value is set before this
-     * date (taking the resolution into account), the component will not
+     * Sets the start range limit for this component. If the range is overlaps
+     * this date (taking the resolution into account), the component will not
      * validate. If <code>startDate</code> is set to <code>null</code>, any
      * value before <code>endDate</code> will be accepted by the range
      *
      * @param startDate
      *            - the allowed range's start date
      */
-    public void setRangeStart(LocalDate startDate) {
+    public void setRangeStartLimit(LocalDate startDate) {
         Date date = convertToDate(startDate);
         if (date != null && getState().rangeEnd != null
                 && date.after(getState().rangeEnd)) {
@@ -114,7 +142,7 @@ public class InlineDateRangeField extends AbstractField<DateRange> {
     }
 
     /**
-     * Sets the end range for this component. If the value is set after this
+     * Sets the end range limit for this component. If the range overlaps this
      * date (taking the resolution into account), the component will not
      * validate. If <code>endDate</code> is set to <code>null</code>, any value
      * after <code>startDate</code> will be accepted by the range.
@@ -123,7 +151,7 @@ public class InlineDateRangeField extends AbstractField<DateRange> {
      *            - the allowed range's end date (inclusive, based on the
      *            current resolution)
      */
-    public void setRangeEnd(LocalDate endDate) {
+    public void setRangeEndLimit(LocalDate endDate) {
         Date date = convertToDate(endDate);
         if (date != null && getState().rangeStart != null
                 && getState().rangeStart.after(date)) {
@@ -135,20 +163,20 @@ public class InlineDateRangeField extends AbstractField<DateRange> {
     }
 
     /**
-     * Returns the precise rangeStart used.
+     * Returns the precise rangeStartLimit used.
      *
-     * @return the precise rangeStart used, may be null.
+     * @return the precise rangeStartLimit used, may be null.
      */
-    public LocalDate getRangeStart() {
+    public LocalDate getRangeStartLimit() {
         return convertFromDate(getState(false).rangeStart);
     }
 
     /**
-     * Returns the precise rangeEnd used.
+     * Returns the precise rangeEndLimit used.
      *
-     * @return the precise rangeEnd used, may be null.
+     * @return the precise rangeEndLimit used, may be null.
      */
-    public LocalDate getRangeEnd() {
+    public LocalDate getRangeEndLimit() {
         return convertFromDate(getState(false).rangeEnd);
     }
 
@@ -171,5 +199,13 @@ public class InlineDateRangeField extends AbstractField<DateRange> {
      */
     public void setShowISOWeekNumbers(boolean showWeekNumbers) {
         getState().showISOWeekNumbers = showWeekNumbers;
+    }
+
+    public String getDateOutOfRangeMessage() {
+        return dateOutOfRangeMessage;
+    }
+
+    public void setDateOutOfRangeMessage(String dateOutOfRangeMessage) {
+        this.dateOutOfRangeMessage = dateOutOfRangeMessage;
     }
 }
