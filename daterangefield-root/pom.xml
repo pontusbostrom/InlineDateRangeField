@@ -5,7 +5,7 @@
 	<groupId>org.vaadin.support.pontus</groupId>
 	<artifactId>daterangefield-root</artifactId>
 	<packaging>pom</packaging>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.1</version>
 	<name>InlineDateRangeField Add-on Root Project</name>
 
 	<prerequisites>

@@ -1,8 +1,17 @@
 # InlineDateRangeField Add-on for Vaadin 8
 
-InlineDateRangeField is a UI component add-on for Vaadin 8 that provides the possibility to select a range of dates. The add-on is based on InlineDateField. 
+InlineDateRangeField is a UI component add-on for Vaadin 8 that provides the possibility to select a range of dates. The add-on is based on the same client side widget as InlineDateField. As it extends AbstarctField, it is suitable for data binding with Binder. The selection of range is currently supported by clicks/touch only. Selection works as follows:
 
-The add-on actually contains two date range fields: DataRangeField and InlineDateRangeField. DateRangeField is mostly intended for internal use. InlineDateRangeField has a proper API suitable for data binding with Binder. This field should typically be used in applications.  
+If nothing is selected:
+- The first click selects the first end of the interval
+- The second click selects the second end of the interval. The interval is then highlighted.
+
+If an interval is already selected:
+- Clicking outside the interval extends the interval to the selected date
+- Clicking on the start date or the end date collapses the interval to only include the date that was clicked
+- Clicking inside the interval otherwise sets the end date to the date that was clicked.
+
+The add-on supports setting limits on the possible interval to select from, just as the built-in DateFields.
 
 
 ## Download release
