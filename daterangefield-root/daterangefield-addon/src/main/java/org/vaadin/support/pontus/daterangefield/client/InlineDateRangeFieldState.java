@@ -8,6 +8,4 @@ public class InlineDateRangeFieldState extends InlineDateFieldState {
 
     public Date startDate = null;
     public Date endDate = null;
-    public String locale = null;
-    public boolean showISOWeekNumbers = false;
 }

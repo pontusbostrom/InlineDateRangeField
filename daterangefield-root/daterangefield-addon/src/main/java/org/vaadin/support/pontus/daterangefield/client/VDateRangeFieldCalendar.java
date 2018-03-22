@@ -98,12 +98,10 @@ public class VDateRangeFieldCalendar extends
         setCurrentDate((Date) date2.clone());
         calendarPanel.updateVisualisation();
 
-        if (currentDate == null
-                || startDate == null
-                || endDate == null
+        if (currentDate == null || startDate == null || endDate == null
                 || !(startDate.getTime() == endDate.getTime()
-                        && startDate.getTime() == currentDate.getTime() && date2
-                        .getTime() == currentDate.getTime())) {
+                        && startDate.getTime() == currentDate.getTime()
+                        && date2.getTime() == currentDate.getTime())) {
 
             if (updateListener != null) {
                 updateListener.dateUpdated(calendarPanel.getStartDate(),
@@ -114,8 +112,8 @@ public class VDateRangeFieldCalendar extends
 
     @Override
     public void setCurrentResolution(DateResolution resolution) {
-        super.setCurrentResolution(resolution == null ? DateResolution.YEAR
-                : resolution);
+        super.setCurrentResolution(
+                resolution == null ? DateResolution.YEAR : resolution);
     }
 
     @Override
@@ -144,5 +142,10 @@ public class VDateRangeFieldCalendar extends
 
     public void setUpdateListener(DateRangeUpdateListener updateListener) {
         this.updateListener = updateListener;
+    }
+
+    @Override
+    protected boolean supportsTime() {
+        return false;
     }
 }
