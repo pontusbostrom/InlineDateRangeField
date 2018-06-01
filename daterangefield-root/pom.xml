@@ -20,7 +20,7 @@
 	<profiles>
 		<profile>
 			<!-- Vaadin pre-release repositories -->
-			<id>vaadin-prerelease</id>
+			<id></id>
 			<activation>
 				<activeByDefault>false</activeByDefault>
 			</activation>

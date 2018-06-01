@@ -1,26 +1,36 @@
 package org.vaadin.support.pontus.daterangefield.client;
 
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 
 import com.google.gwt.core.shared.GWT;
 import com.google.gwt.event.dom.client.DomEvent;
+import com.google.gwt.i18n.client.DateTimeFormat;
+import com.google.gwt.user.datepicker.client.CalendarUtil;
 import com.vaadin.client.ui.VAbstractCalendarPanel.FocusOutListener;
 import com.vaadin.client.ui.VAbstractCalendarPanel.SubmitListener;
 import com.vaadin.client.ui.VAbstractDateFieldCalendar;
+import com.vaadin.client.ui.VDateCalendarPanel;
 import com.vaadin.client.ui.VPopupCalendar;
 import com.vaadin.shared.ui.datefield.DateResolution;
 
 public class VDateRangeFieldCalendar extends
-        VAbstractDateFieldCalendar<VDateRangeCalendarPanel, DateResolution> {
+VAbstractDateFieldCalendar<VDateCalendarPanel, DateResolution> {
+
+    @FunctionalInterface
     public interface DateRangeUpdateListener {
-        public void dateUpdated(Date startDate, Date endDate);
+        public void dateUpdated(String startDate, String endDate);
     }
 
     private DateRangeUpdateListener updateListener;
+    private Date startDate;
+    private Date endDate;
+    private DateTimeFormat df = DateTimeFormat.getFormat("yyyy-MM-dd");
+    private boolean changed = false;
 
     public VDateRangeFieldCalendar() {
-        super(GWT.create(VDateRangeCalendarPanel.class), DateResolution.DAY);
+        super(GWT.create(VDateCalendarPanel.class), DateResolution.DAY);
 
         calendarPanel.setFocusOutListener(new FocusOutListener() {
 
@@ -48,65 +58,30 @@ public class VDateRangeFieldCalendar extends
 
     }
 
-    public void setStartDate(Date date) {
-        calendarPanel.setStartDate(date);
-    }
-
-    public void setEndDate(Date date) {
-        calendarPanel.setEndDate(date);
-    }
 
     public void updateVisualisation() {
-        calendarPanel.updateVisualisation();
+
+
+        Map<String, String> styleMap = new HashMap<>();
+        if(startDate == null) {
+            return;
+        }
+        Date start = (Date)startDate.clone();
+        while(endDate!=null && start.before(endDate)) {
+            styleMap.put(df.format(start), "v-inline-datefield-calendarpanel-day-selected");
+            CalendarUtil.addDaysToDate(start, 1);
+        }
+        styleMap.put(df.format(start), "v-inline-datefield-calendarpanel-day-selected");
+        calendarPanel.setDateStyles(styleMap);
+        calendarPanel.renderCalendar();
     }
 
     @Override
-    @SuppressWarnings("deprecation")
     public void updateValueFromPanel() {
-        // If field is invisible at the beginning, client can still be null when
-        // this function is called.
-
-        Date date2 = calendarPanel.getDate();
-        Date currentDate = getCurrentDate();
-        Date startDate = calendarPanel.getStartDate();
-        Date endDate = calendarPanel.getEndDate();
-
-        // Date range logic
-
-        if (startDate == null) {
-            calendarPanel.setStartDate((Date) date2.clone());
-        } else {
-            Date value = (Date) date2.clone();
-            // Clicking on the edge of the range collapses the range to a single
-            // day range.
-            if (value != null && value.equals(startDate)) {
-                calendarPanel.setStartDate(value);
-                calendarPanel.setEndDate((Date) value.clone());
-            } else if (value != null && value.equals(endDate)) {
-                calendarPanel.setStartDate(endDate);
-                calendarPanel.setEndDate((Date) value.clone());
-            } else
-            // Depending which side of the interval is clicked extend/contract
-            // range
-            if (startDate.before(value)) {
-                calendarPanel.setEndDate(value);
-            } else {
-                calendarPanel.setStartDate(value);
-            }
-        }
-
-        setCurrentDate((Date) date2.clone());
-        calendarPanel.updateVisualisation();
-
-        if (currentDate == null || startDate == null || endDate == null
-                || !(startDate.getTime() == endDate.getTime()
-                        && startDate.getTime() == currentDate.getTime()
-                        && date2.getTime() == currentDate.getTime())) {
-
-            if (updateListener != null) {
-                updateListener.dateUpdated(calendarPanel.getStartDate(),
-                        calendarPanel.getEndDate());
-            }
+        updateBufferedValues();
+        if (changed && updateListener != null) {
+            updateListener.dateUpdated(df.format(startDate),
+                    df.format(endDate));
         }
     }
 
@@ -148,4 +123,75 @@ public class VDateRangeFieldCalendar extends
     protected boolean supportsTime() {
         return false;
     }
+
+    @Override
+    public void updateBufferedValues() {
+        // If field is invisible at the beginning, client can still be null when
+        // this function is called.
+
+        if (getClient() == null) {
+            return;
+        }
+
+        Date date2 = calendarPanel.getDate();
+        Date currentDate = getCurrentDate();
+        changed =false;
+
+        // Date range logic
+
+        if (startDate == null) {
+            startDate= (Date)date2.clone();
+        } else {
+            Date value = (Date) date2.clone();
+            // Clicking on the edge of the range collapses the range to a single
+            // day range.
+            if (value != null && value.equals(startDate)) {
+                startDate = value;
+                endDate = (Date) value.clone();
+            } else if (value != null && value.equals(endDate)) {
+                startDate = endDate;
+                endDate = (Date) value.clone();
+            } else
+                // Depending which side of the interval is clicked extend/contract
+                // range
+                if (startDate.before(value)) {
+                    endDate = value;
+                } else {
+                    startDate = value;
+                }
+        }
+        if(!date2.equals(currentDate)) {
+            changed = true;
+        }
+        setCurrentDate((Date) date2.clone());
+        updateVisualisation();
+
+    }
+
+
+    public Date getStartDate() {
+        return startDate;
+    }
+
+
+    public void setStartDate(String startDate) {
+        Date date = df.parse(startDate);
+        calendarPanel.setDate((Date)date.clone());
+        this.startDate = date;
+    }
+
+
+    public Date getEndDate() {
+        return endDate;
+    }
+
+
+    public void setEndDate(String endDate) {
+        this.endDate = df.parse(endDate);
+    }
+
+    public void setPanelDate(String date) {
+        calendarPanel.setDate(df.parse(date));
+    }
+
 }

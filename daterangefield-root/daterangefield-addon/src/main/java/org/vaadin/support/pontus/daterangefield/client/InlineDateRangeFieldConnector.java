@@ -3,13 +3,14 @@ package org.vaadin.support.pontus.daterangefield.client;
 import java.util.Date;
 
 import org.vaadin.support.pontus.daterangefield.InlineDateRangeField;
-import org.vaadin.support.pontus.daterangefield.client.VDateRangeFieldCalendar.DateRangeUpdateListener;
 
 import com.vaadin.client.LocaleNotLoadedException;
 import com.vaadin.client.VConsole;
 import com.vaadin.client.communication.StateChangeEvent;
 import com.vaadin.client.ui.AbstractFieldConnector;
+import com.vaadin.client.ui.VDateField;
 import com.vaadin.shared.ui.Connect;
+import com.vaadin.shared.ui.datefield.DateResolution;
 
 @Connect(InlineDateRangeField.class)
 public class InlineDateRangeFieldConnector extends AbstractFieldConnector {
@@ -17,14 +18,7 @@ public class InlineDateRangeFieldConnector extends AbstractFieldConnector {
     public InlineDateRangeFieldConnector() {
         InlineDateRangeFieldServerRpc proxy = getRpcProxy(InlineDateRangeFieldServerRpc.class);
         VDateRangeFieldCalendar cal = getWidget();
-        cal.setUpdateListener(new DateRangeUpdateListener() {
-
-            @Override
-            public void dateUpdated(Date startDate, Date endDate) {
-                proxy.rangeUpdated(startDate, endDate);
-            }
-
-        });
+        cal.setUpdateListener((startDate, endDate) -> proxy.rangeUpdated(startDate, endDate));
 
         getWidget().calendarPanel.setDateTimeService(getWidget()
                 .getDateTimeService());
@@ -48,6 +42,13 @@ public class InlineDateRangeFieldConnector extends AbstractFieldConnector {
     @Override
     public void onStateChanged(StateChangeEvent stateChangeEvent) {
         super.onStateChanged(stateChangeEvent);
+
+        VDateField<DateResolution> widget = getWidget();
+
+        // Save details
+        widget.client = getConnection();
+        //widget.connector = this;
+
         boolean visualsChanged = false;
         if (stateChangeEvent.hasPropertyChanged("enabled")) {
             getWidget().setEnabled(getState().enabled);
@@ -77,11 +78,11 @@ public class InlineDateRangeFieldConnector extends AbstractFieldConnector {
 
         if (stateChangeEvent.hasPropertyChanged("startDate")) {
 
-            Date currentStart = getWidget().calendarPanel.getStartDate();
+            Date currentStart = getWidget().getStartDate();
             if (currentStart == null && getState().startDate == null) {
                 // No change, No need to update
-            } else if ((currentStart == null && getState().startDate != null)
-                    || !currentStart.equals(getState().startDate)) {
+            } else if (currentStart == null || getState().startDate == null
+                    || (currentStart!=null && !currentStart.equals(getState().startDate))) {
                 getWidget().setStartDate(getState().startDate);
                 visualsChanged = true;
             }
@@ -89,8 +90,7 @@ public class InlineDateRangeFieldConnector extends AbstractFieldConnector {
             Date currentDate = getWidget().calendarPanel.getDate();
             if (currentDate == null) {
                 if (getState().startDate != null) {
-                    getWidget().calendarPanel
-                            .setDate((Date) getState().startDate.clone());
+                    getWidget().setPanelDate(getState().startDate);
                 } else {
                     getWidget().calendarPanel.setDate(null);
                 }
@@ -98,11 +98,11 @@ public class InlineDateRangeFieldConnector extends AbstractFieldConnector {
         }
 
         if (stateChangeEvent.hasPropertyChanged("endDate")) {
-            Date currentEnd = getWidget().calendarPanel.getEndDate();
+            Date currentEnd = getWidget().getEndDate();
             if (currentEnd == null && getState().endDate == null) {
                 // No change, No need to update
-            } else if ((currentEnd == null && getState().endDate != null)
-                    || !currentEnd.equals(getState().endDate)) {
+            } else if (currentEnd == null || getState().endDate == null
+                    || (currentEnd!=null && !currentEnd.equals(getState().endDate))) {
                 getWidget().setEndDate(getState().endDate);
 
                 visualsChanged = true;
@@ -111,8 +111,7 @@ public class InlineDateRangeFieldConnector extends AbstractFieldConnector {
             Date currentDate = getWidget().calendarPanel.getDate();
             if (currentDate == null) {
                 if (getState().startDate != null) {
-                    getWidget().calendarPanel
-                            .setDate((Date) getState().startDate.clone());
+                    getWidget().setPanelDate(getState().startDate);
                 } else {
                     getWidget().calendarPanel.setDate(null);
                 }
@@ -123,7 +122,7 @@ public class InlineDateRangeFieldConnector extends AbstractFieldConnector {
         if (stateChangeEvent.hasPropertyChanged("showISOWeekNumbers")) {
             getWidget().setShowISOWeekNumbers(
                     getState().showISOWeekNumbers
-                            && getWidget().dts.getFirstDayOfWeek() == 1);
+                    && getWidget().dts.getFirstDayOfWeek() == 1);
             visualsChanged = true;
         }
 
@@ -138,7 +137,7 @@ public class InlineDateRangeFieldConnector extends AbstractFieldConnector {
         }
 
         if (visualsChanged) {
-            getWidget().calendarPanel.renderCalendar();
+            getWidget().updateVisualisation();;
         }
 
     }

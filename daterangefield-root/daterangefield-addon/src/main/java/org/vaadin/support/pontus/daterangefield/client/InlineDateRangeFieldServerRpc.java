@@ -1,11 +1,10 @@
 package org.vaadin.support.pontus.daterangefield.client;
 
-import java.util.Date;
-
 import com.vaadin.shared.communication.ServerRpc;
 
+@FunctionalInterface
 public interface InlineDateRangeFieldServerRpc extends ServerRpc {
 
-    public void rangeUpdated(Date startDate, Date endDate);
+    public void rangeUpdated(String startDate, String endDate);
 
 }
